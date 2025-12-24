@@ -1,0 +1,19 @@
+# Compiled Executables
+*.exe
+*.out
+*.app
+
+# Object Files
+*.o
+*.obj
+
+# Debugging and IDE files
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Data Files (Optional)
+# Uncomment the lines below if you want to keep your database private
+# customers.dat
+# tariff.dat
