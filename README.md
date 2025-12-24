@@ -40,7 +40,8 @@ A robust, console-based management application built in C++ to automate electric
 1. **Clone the repository**:
    ```bash
    git clone [https://github.com/Rajmund09/Electricity-Billing-System.git](https://github.com/Rajmund09/Electricity-Billing-System.git)
-<!-- Compile the code: -->
+   
+**Compile the code:**
    g++ electricity_billing.cpp -o BillingSystem
 <!-- Run the application: -->
    ./BillingSystem
