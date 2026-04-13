@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GridLoom Billing Console</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="page-shell">
+        <aside class="sidebar glass-panel">
+            <div class="brand">
+                <div class="brand-mark">GL</div>
+                <div>
+                    <p class="eyebrow">Electricity Billing System</p>
+                    <h1>GridLoom</h1>
+                </div>
+            </div>
+
+            <nav class="nav-links">
+                <button class="nav-link is-active" data-target="overview">Overview</button>
+                <button class="nav-link" data-target="customers">Customers</button>
+                <button class="nav-link" data-target="billing">Billing</button>
+                <button class="nav-link" data-target="tariff">Tariffs</button>
+                <button class="nav-link" data-target="reports">Reports</button>
+            </nav>
+
+            <div class="sidebar-card">
+                <p class="eyebrow">Backend Alignment</p>
+                <h2>C++ Driven Flows</h2>
+                <p>This interface mirrors the same customer, billing, payment, tariff, and reporting modules already present in the C++ application.</p>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="hero glass-panel reveal">
+                <div>
+                    <p class="eyebrow">Professional Utility Dashboard</p>
+                    <h2>Elegant UI for your electricity billing backend</h2>
+                    <p class="hero-copy">
+                        Designed around the current C++ billing logic with richer presentation, smoother transitions,
+                        and a cleaner operator workflow.
+                    </p>
+                </div>
+                <div class="hero-actions">
+                    <button class="action-button primary" id="openQuickBill">Generate Quick Bill</button>
+                    <button class="action-button secondary" id="focusCustomers">Review Customers</button>
+                </div>
+            </header>
+
+            <section class="panel-grid" id="overview">
+                <article class="metric-card highlight reveal">
+                    <p class="metric-label">Revenue Collected</p>
+                    <h3 class="metric-value" data-metric="revenue">Rs. 0</h3>
+                    <p class="metric-trend positive">+14% since last cycle</p>
+                </article>
+                <article class="metric-card reveal">
+                    <p class="metric-label">Pending Bills</p>
+                    <h3 class="metric-value" data-metric="pending">0</h3>
+                    <p class="metric-trend neutral">Needs follow-up</p>
+                </article>
+                <article class="metric-card reveal">
+                    <p class="metric-label">Customers</p>
+                    <h3 class="metric-value" data-metric="customers">0</h3>
+                    <p class="metric-trend positive">Active base</p>
+                </article>
+                <article class="metric-card reveal">
+                    <p class="metric-label">Average Units</p>
+                    <h3 class="metric-value" data-metric="units">0</h3>
+                    <p class="metric-trend neutral">Per customer</p>
+                </article>
+            </section>
+
+            <section class="workspace-grid">
+                <section class="workspace-panel glass-panel reveal" id="customers">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">Customer Operations</p>
+                            <h2>Customer Directory</h2>
+                        </div>
+                        <div class="toolbar">
+                            <input type="search" id="customerSearch" placeholder="Search by name or ID">
+                            <button class="action-button secondary" id="scrollToForm">Add Customer</button>
+                        </div>
+                    </div>
+
+                    <div class="table-shell">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Units</th>
+                                    <th>Bill</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customerTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="workspace-panel glass-panel reveal" id="billing">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">Billing Interaction</p>
+                            <h2>Generate Bill</h2>
+                        </div>
+                    </div>
+
+                    <form class="billing-form" id="billingForm">
+                        <label>
+                            Customer
+                            <select id="billingCustomer"></select>
+                        </label>
+                        <label>
+                            Previous Reading
+                            <input type="number" id="previousReading" min="0" step="0.01" readonly>
+                        </label>
+                        <label>
+                            Current Reading
+                            <input type="number" id="currentReading" min="0" step="0.01" required>
+                        </label>
+                        <button type="submit" class="action-button primary">Preview Bill</button>
+                    </form>
+
+                    <div class="bill-preview" id="billPreview">
+                        <div class="preview-header">
+                            <p class="eyebrow">Live Breakdown</p>
+                            <span class="status-pill" id="previewStatus">Awaiting input</span>
+                        </div>
+                        <div class="preview-grid">
+                            <div>
+                                <span>Units Consumed</span>
+                                <strong id="previewUnits">0</strong>
+                            </div>
+                            <div>
+                                <span>Energy Charge</span>
+                                <strong id="previewEnergy">Rs. 0.00</strong>
+                            </div>
+                            <div>
+                                <span>Fixed Charge</span>
+                                <strong>Rs. 50.00</strong>
+                            </div>
+                            <div>
+                                <span>Tax</span>
+                                <strong id="previewTax">Rs. 0.00</strong>
+                            </div>
+                        </div>
+                        <div class="preview-total">
+                            <span>Total Bill</span>
+                            <strong id="previewTotal">Rs. 0.00</strong>
+                        </div>
+                    </div>
+                </section>
+            </section>
+
+            <section class="workspace-grid">
+                <section class="workspace-panel glass-panel reveal" id="customerFormSection">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">Add New Record</p>
+                            <h2>Customer Intake</h2>
+                        </div>
+                    </div>
+
+                    <form class="customer-form" id="customerForm">
+                        <label>
+                            Full Name
+                            <input type="text" id="customerName" placeholder="e.g. Aarav Sharma" required>
+                        </label>
+                        <label>
+                            Address
+                            <input type="text" id="customerAddress" placeholder="Service address" required>
+                        </label>
+                        <label>
+                            Contact Number
+                            <input type="text" id="customerContact" placeholder="+91 98XXXXXXX" required>
+                        </label>
+                        <label>
+                            Customer Type
+                            <select id="customerType">
+                                <option value="Domestic">Domestic</option>
+                                <option value="Commercial">Commercial</option>
+                                <option value="Industrial">Industrial</option>
+                            </select>
+                        </label>
+                        <label>
+                            Previous Reading
+                            <input type="number" id="customerPrevious" min="0" step="0.01" required>
+                        </label>
+                        <label>
+                            Current Reading
+                            <input type="number" id="customerCurrent" min="0" step="0.01" required>
+                        </label>
+                        <button type="submit" class="action-button primary">Create Customer</button>
+                    </form>
+                </section>
+
+                <section class="workspace-panel glass-panel reveal" id="tariff">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">Tariff Control</p>
+                            <h2>Rate Overview</h2>
+                        </div>
+                    </div>
+
+                    <div class="tariff-grid" id="tariffCards"></div>
+                </section>
+            </section>
+
+            <section class="workspace-panel glass-panel reveal" id="reports">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Reporting Layer</p>
+                        <h2>Collection Snapshot</h2>
+                    </div>
+                </div>
+
+                <div class="report-layout">
+                    <div class="report-chart" id="collectionChart"></div>
+                    <div class="report-notes">
+                        <div class="note-card">
+                            <span class="note-title">Paid Accounts</span>
+                            <strong id="paidCount">0</strong>
+                        </div>
+                        <div class="note-card">
+                            <span class="note-title">Pending Accounts</span>
+                            <strong id="pendingCount">0</strong>
+                        </div>
+                        <div class="note-card">
+                            <span class="note-title">Best Performing Segment</span>
+                            <strong id="topSegment">Domestic</strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
