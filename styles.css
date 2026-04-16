@@ -623,6 +623,7 @@ tbody tr:hover {
 }
 
 @media (max-width: 1180px) {
+
     .page-shell,
     .workspace-grid,
     .report-layout,
