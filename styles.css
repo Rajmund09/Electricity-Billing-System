@@ -306,7 +306,7 @@ body {
         grid-template-columns: 1fr;
         gap: 12px;
     }
-
+}
 label {
     display: flex;
     flex-direction: column;
