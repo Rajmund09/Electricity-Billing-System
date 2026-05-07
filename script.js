@@ -1,71 +1,60 @@
-const tariffRates = {
-    Domestic: 5.0,
-    Commercial: 7.5,
-    Industrial: 10.0
+if (window.location.protocol === "file:") {
+    window.location.replace("http://localhost:8080/");
+}
+
+const api = {
+    state: "/api/state",
+    customers: "/api/customers",
+    generateBill: "/api/bills/generate",
+    payments: "/api/payments",
+    tariffs: "/api/tariffs"
 };
 
 const state = {
-    customers: [
-        {
-            id: 1001,
-            name: "Aarav Sharma",
-            address: "14 Lakeview Residency, Pune",
-            contact: "+91 98765 12001",
-            type: "Domestic",
-            previousReading: 1850,
-            currentReading: 2015,
-            unitsConsumed: 165,
-            billAmount: 1032.5,
-            isPaid: true
-        },
-        {
-            id: 1002,
-            name: "Blue Orbit Mart",
-            address: "22 Market Spine Road, Nashik",
-            contact: "+91 98765 12002",
-            type: "Commercial",
-            previousReading: 7120,
-            currentReading: 7435,
-            unitsConsumed: 315,
-            billAmount: 2843.5,
-            isPaid: false
-        },
-        {
-            id: 1003,
-            name: "Vega Steel Works",
-            address: "Sector 8 Industrial Belt, Nagpur",
-            contact: "+91 98765 12003",
-            type: "Industrial",
-            previousReading: 12540,
-            currentReading: 13010,
-            unitsConsumed: 470,
-            billAmount: 5605,
-            isPaid: false
-        }
-    ],
-    previewCustomerId: 1001
+    customers: [],
+    tariffs: {
+        Domestic: 5,
+        Commercial: 7.5,
+        Industrial: 10,
+        fixedCharge: 50,
+        taxRate: 0.18
+    },
+    report: {},
+    previewCustomerId: null
 };
 
-const customerTableBody = document.getElementById("customerTableBody");
-const customerSearch = document.getElementById("customerSearch");
-const customerForm = document.getElementById("customerForm");
-const customerFormSection = document.getElementById("customerFormSection");
-const billingForm = document.getElementById("billingForm");
-const billingCustomer = document.getElementById("billingCustomer");
-const previousReading = document.getElementById("previousReading");
-const currentReading = document.getElementById("currentReading");
-const previewUnits = document.getElementById("previewUnits");
-const previewEnergy = document.getElementById("previewEnergy");
-const previewTax = document.getElementById("previewTax");
-const previewTotal = document.getElementById("previewTotal");
-const previewStatus = document.getElementById("previewStatus");
-const billPreview = document.getElementById("billPreview");
-const tariffCards = document.getElementById("tariffCards");
-const collectionChart = document.getElementById("collectionChart");
-const paidCount = document.getElementById("paidCount");
-const pendingCount = document.getElementById("pendingCount");
-const topSegment = document.getElementById("topSegment");
-const toast = document.getElementById("toast");
+const $ = (id) => document.getElementById(id);
+
+const elements = {
+    customerTableBody: $("customerTableBody"),
+    customerSearch: $("customerSearch"),
+    customerResultCount: $("customerResultCount"),
+    customerForm: $("customerForm"),
+    billingForm: $("billingForm"),
+    billingCustomer: $("billingCustomer"),
+    previousReading: $("previousReading"),
+    currentReading: $("currentReading"),
+    selectedCustomerName: $("selectedCustomerName"),
+    selectedCustomerType: $("selectedCustomerType"),
+    selectedCustomerStatus: $("selectedCustomerStatus"),
+    selectedCustomerBill: $("selectedCustomerBill"),
+    previewUnits: $("previewUnits"),
+    previewEnergy: $("previewEnergy"),
+    previewFixed: $("previewFixed"),
+    previewTax: $("previewTax"),
+    previewTotal: $("previewTotal"),
+    previewStatus: $("previewStatus"),
+    billPreview: $("billPreview"),
+    tariffCards: $("tariffCards"),
+    tariffForm: $("tariffForm"),
+    collectionChart: $("collectionChart"),
+    paidCount: $("paidCount"),
+    pendingCount: $("pendingCount"),
+    pendingAmount: $("pendingAmount"),
+    topSegment: $("topSegment"),
+    backendStatus: $("backendStatus"),
+    toast: $("toast")
+};
 
 const metricTargets = {
     revenue: document.querySelector('[data-metric="revenue"]'),
@@ -74,303 +63,386 @@ const metricTargets = {
     units: document.querySelector('[data-metric="units"]')
 };
 
-function calculateBill(previous, current, type) {
-    const units = Math.max(0, current - previous);
-    const energy = units * tariffRates[type];
-    const fixedCharge = 50;
-    const tax = (energy + fixedCharge) * 0.18;
-    const total = energy + fixedCharge + tax;
-
-    return {
-        units,
-        energy,
-        fixedCharge,
-        tax,
-        total
-    };
-}
-
 function formatCurrency(value) {
-    return `Rs. ${value.toFixed(2)}`;
+    return `RS. ${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function nextCustomerId() {
-    return Math.max(...state.customers.map((customer) => customer.id)) + 1;
+function setBackendStatus(mode, text) {
+    elements.backendStatus.textContent = text;
+    elements.backendStatus.dataset.mode = mode;
 }
 
-function showToast(message) {
-    toast.textContent = message;
-    toast.classList.add("is-visible");
+function showToast(message, type = "info") {
+    elements.toast.textContent = message;
+    elements.toast.dataset.type = type;
+    elements.toast.classList.add("is-visible");
     clearTimeout(showToast.timer);
     showToast.timer = setTimeout(() => {
-        toast.classList.remove("is-visible");
-    }, 2600);
+        elements.toast.classList.remove("is-visible");
+    }, 3200);
 }
 
-function animateValue(element, endValue, formatter) {
-    const duration = 800;
-    const startTime = performance.now();
-    const match = String(element.textContent).replace(/[^0-9.]/g, "");
-    const startValue = Number(match) || 0;
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
 
-    function frame(currentTime) {
-        const progress = Math.min((currentTime - startTime) / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        const currentValue = startValue + (endValue - startValue) * eased;
-        element.textContent = formatter(currentValue);
-        if (progress < 1) {
-            requestAnimationFrame(frame);
-        }
+async function requestJson(url, options = {}) {
+    const response = await fetch(url, {
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        ...options
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(data.error || "Request failed.");
+    }
+    return data;
+}
+
+function applyState(nextState) {
+    state.customers = Array.isArray(nextState.customers) ? nextState.customers : state.customers;
+    state.tariffs = nextState.tariffs || state.tariffs;
+    state.report = nextState.report || state.report;
+
+    if (!state.customers.some((customer) => customer.id === state.previewCustomerId)) {
+        state.previewCustomerId = state.customers[0]?.id ?? null;
     }
 
-    requestAnimationFrame(frame);
+    renderAll();
+}
+
+async function loadState() {
+    try {
+        setBackendStatus("syncing", "Syncing records...");
+        const data = await requestJson(api.state);
+        applyState(data);
+        setBackendStatus("online", "Records synced");
+    } catch (error) {
+        setBackendStatus("offline", "Service unavailable");
+        showToast("Billing service is not available. Run .\\BillingBackend.exe and refresh.", "error");
+    }
+}
+
+function calculatePreview(previous, current, type) {
+    const units = Math.max(0, current - previous);
+    const fixed = Number(state.tariffs.fixedCharge || 50);
+    const taxRate = Number(state.tariffs.taxRate || 0.18);
+    const energy = units * Number(state.tariffs[type] || 0);
+    const tax = (energy + fixed) * taxRate;
+    return { units, energy, fixed, tax, total: energy + fixed + tax };
 }
 
 function renderMetrics() {
-    const revenue = state.customers
-        .filter((customer) => customer.isPaid)
-        .reduce((sum, customer) => sum + customer.billAmount, 0);
-    const pendingBills = state.customers.filter((customer) => !customer.isPaid).length;
-    const totalCustomers = state.customers.length;
-    const averageUnits = totalCustomers
-        ? state.customers.reduce((sum, customer) => sum + customer.unitsConsumed, 0) / totalCustomers
-        : 0;
-
-    animateValue(metricTargets.revenue, revenue, (value) => formatCurrency(value));
-    animateValue(metricTargets.pending, pendingBills, (value) => `${Math.round(value)}`);
-    animateValue(metricTargets.customers, totalCustomers, (value) => `${Math.round(value)}`);
-    animateValue(metricTargets.units, averageUnits, (value) => value.toFixed(1));
-
-    paidCount.textContent = state.customers.filter((customer) => customer.isPaid).length;
-    pendingCount.textContent = pendingBills;
-
-    const segmentTotals = state.customers.reduce((accumulator, customer) => {
-        accumulator[customer.type] = (accumulator[customer.type] || 0) + customer.billAmount;
-        return accumulator;
-    }, {});
-
-    const bestSegment = Object.entries(segmentTotals).sort((a, b) => b[1] - a[1])[0];
-    topSegment.textContent = bestSegment ? bestSegment[0] : "Domestic";
+    const report = state.report || {};
+    metricTargets.revenue.textContent = formatCurrency(report.revenue || 0);
+    metricTargets.pending.textContent = report.pendingCount || 0;
+    metricTargets.customers.textContent = report.customerCount || 0;
+    metricTargets.units.textContent = Number(report.averageUnits || 0).toFixed(1);
+    elements.paidCount.textContent = report.paidCount || 0;
+    elements.pendingCount.textContent = report.pendingCount || 0;
+    elements.pendingAmount.textContent = formatCurrency(report.pendingAmount || 0);
+    elements.topSegment.textContent = report.topSegment || "Domestic";
 }
 
-function statusBadge(isPaid) {
-    const label = isPaid ? "Paid" : "Pending";
-    const className = isPaid ? "status-paid" : "status-pending";
-    return `<span class="status-badge ${className}">${label}</span>`;
-}
+function renderCustomerTable() {
+    const query = elements.customerSearch.value.trim().toLowerCase();
+    const filtered = state.customers.filter((customer) => (
+        customer.name.toLowerCase().includes(query) ||
+        customer.address.toLowerCase().includes(query) ||
+        customer.contact.toLowerCase().includes(query) ||
+        customer.type.toLowerCase().includes(query) ||
+        String(customer.id).includes(query)
+    ));
 
-function renderCustomerTable(filter = "") {
-    const query = filter.trim().toLowerCase();
-    const customers = state.customers.filter((customer) => {
-        return (
-            customer.name.toLowerCase().includes(query) ||
-            String(customer.id).includes(query) ||
-            customer.type.toLowerCase().includes(query)
-        );
-    });
+    elements.customerResultCount.textContent = `${filtered.length} of ${state.customers.length} records shown`;
 
-    customerTableBody.innerHTML = customers.map((customer) => `
+    if (!filtered.length) {
+        elements.customerTableBody.innerHTML = `<tr><td class="empty-cell" colspan="7">No customer records found.</td></tr>`;
+        return;
+    }
+
+    elements.customerTableBody.innerHTML = filtered.map((customer) => `
         <tr>
-            <td>${customer.id}</td>
+            <td><strong class="eyebrow">${customer.id}</strong></td>
             <td>
-                <strong>${customer.name}</strong>
-                <div>${customer.contact}</div>
+                <strong style="font-family: var(--font-heading);">${escapeHtml(customer.name)}</strong>
+                <div class="eyebrow" style="font-size: 0.65rem; margin-top: 4px;">${escapeHtml(customer.address)}</div>
+                <small class="eyebrow" style="opacity: 0.5;">${escapeHtml(customer.contact)}</small>
             </td>
-            <td>${customer.type}</td>
-            <td>${customer.unitsConsumed.toFixed(2)}</td>
-            <td>${formatCurrency(customer.billAmount)}</td>
-            <td>${statusBadge(customer.isPaid)}</td>
+            <td><span class="eyebrow">${escapeHtml(customer.type)}</span></td>
+            <td><span style="font-family: var(--font-mono);">${Number(customer.currentReading).toFixed(2)}</span></td>
+            <td><span style="font-family: var(--font-mono);">${Number(customer.unitsConsumed).toFixed(2)}</span></td>
+            <td>
+                <strong style="font-family: var(--font-mono); color: var(--accent);">${formatCurrency(customer.billAmount)}</strong>
+                <div><span class="status-pill ${customer.isPaid ? "status-paid" : "status-pending"}">${customer.isPaid ? "PAID" : "PENDING"}</span></div>
+            </td>
+            <td class="row-actions">
+                <button class="icon-button ${customer.isPaid ? "muted" : ""}" data-action="toggle-paid" data-id="${customer.id}">
+                    ${customer.isPaid ? "Mark Due" : "Mark Paid"}
+                </button>
+                <button class="icon-button danger" data-action="delete" data-id="${customer.id}">Delete</button>
+            </td>
         </tr>
     `).join("");
 }
 
-function renderBillingCustomers() {
-    billingCustomer.innerHTML = state.customers.map((customer) => `
-        <option value="${customer.id}">${customer.id} • ${customer.name} (${customer.type})</option>
-    `).join("");
+function renderBillingSelect() {
+    elements.billingCustomer.innerHTML = state.customers.map((customer) => (
+        `<option value="${customer.id}">${customer.id} - ${escapeHtml(customer.name)} (${escapeHtml(customer.type)})</option>`
+    )).join("");
 
-    if (!state.customers.some((customer) => customer.id === state.previewCustomerId)) {
-        state.previewCustomerId = state.customers[0]?.id;
+    if (state.previewCustomerId) {
+        elements.billingCustomer.value = String(state.previewCustomerId);
     }
-
-    billingCustomer.value = String(state.previewCustomerId);
     syncBillingCustomer();
 }
 
+function resetSelectedCustomer() {
+    elements.selectedCustomerName.textContent = "No customer selected";
+    elements.selectedCustomerType.textContent = "-";
+    elements.selectedCustomerStatus.textContent = "-";
+    elements.selectedCustomerStatus.className = "";
+    elements.selectedCustomerBill.textContent = formatCurrency(0);
+    elements.previousReading.value = "";
+    elements.currentReading.value = "";
+    updatePreview(0);
+}
+
 function syncBillingCustomer() {
-    const selected = state.customers.find((customer) => customer.id === Number(billingCustomer.value));
-    if (!selected) {
+    const customer = state.customers.find((entry) => entry.id === Number(elements.billingCustomer.value));
+    if (!customer) {
+        resetSelectedCustomer();
         return;
     }
 
-    state.previewCustomerId = selected.id;
-    previousReading.value = selected.currentReading.toFixed(2);
-    currentReading.value = selected.currentReading.toFixed(2);
-    updatePreview(selected.currentReading, true);
+    state.previewCustomerId = customer.id;
+    elements.previousReading.value = Number(customer.currentReading).toFixed(2);
+    elements.currentReading.value = Number(customer.currentReading).toFixed(2);
+    elements.selectedCustomerName.textContent = `${customer.id} - ${customer.name}`;
+    elements.selectedCustomerType.textContent = customer.type;
+    elements.selectedCustomerStatus.textContent = customer.isPaid ? "Paid" : "Pending";
+    elements.selectedCustomerStatus.className = customer.isPaid ? "paid-text" : "pending-text";
+    elements.selectedCustomerBill.textContent = formatCurrency(customer.billAmount);
+    updatePreview(customer.currentReading);
 }
 
-function updatePreview(nextReading, isNeutral = false) {
+function updatePreview(readingValue) {
     const customer = state.customers.find((entry) => entry.id === state.previewCustomerId);
     if (!customer) {
+        elements.previewStatus.textContent = "No account";
         return;
     }
 
-    const parsedReading = Number(nextReading);
-    if (Number.isNaN(parsedReading) || parsedReading < customer.currentReading) {
-        previewStatus.textContent = "Reading must increase";
-        previewStatus.className = "status-pill status-pending";
+    const current = Number(readingValue);
+    const previous = Number(customer.currentReading);
+    if (Number.isNaN(current) || current < previous) {
+        elements.previewStatus.textContent = "Check reading";
+        elements.previewStatus.className = "status-pill status-pending";
         return;
     }
 
-    const bill = calculateBill(customer.currentReading, parsedReading, customer.type);
-    previewUnits.textContent = bill.units.toFixed(2);
-    previewEnergy.textContent = formatCurrency(bill.energy);
-    previewTax.textContent = formatCurrency(bill.tax);
-    previewTotal.textContent = formatCurrency(bill.total);
-    previewStatus.textContent = isNeutral ? "Ready for generation" : "Preview updated";
-    previewStatus.className = "status-pill status-paid";
-
-    billPreview.classList.remove("is-emphasized");
-    requestAnimationFrame(() => billPreview.classList.add("is-emphasized"));
+    const bill = calculatePreview(previous, current, customer.type);
+    elements.previewUnits.textContent = bill.units.toFixed(2);
+    elements.previewEnergy.textContent = formatCurrency(bill.energy);
+    elements.previewFixed.textContent = formatCurrency(bill.fixed);
+    elements.previewTax.textContent = formatCurrency(bill.tax);
+    elements.previewTotal.textContent = formatCurrency(bill.total);
+    elements.previewStatus.textContent = bill.units > 0 ? "Preview updated" : "Ready";
+    elements.previewStatus.className = "status-pill status-paid";
 }
 
-function renderTariffCards() {
-    tariffCards.innerHTML = Object.entries(tariffRates).map(([type, rate]) => `
+function renderTariffs() {
+    const types = ["Domestic", "Commercial", "Industrial"];
+    elements.tariffCards.innerHTML = types.map((type) => `
         <article class="tariff-card">
-            <p class="eyebrow">${type} Segment</p>
-            <h3>${type} Tariff</h3>
-            <p>Aligned with the corresponding C++ billing category and charge formula.</p>
-            <span class="tariff-rate">${formatCurrency(rate)}</span>
+            <span class="tariff-code">${type.slice(0, 3).toUpperCase()}</span>
+            <p class="eyebrow">${type}</p>
+            <h3>${formatCurrency(state.tariffs[type])}</h3>
+            <p>Per unit, plus ${formatCurrency(state.tariffs.fixedCharge)} fixed charge and ${(state.tariffs.taxRate * 100).toFixed(0)}% tax.</p>
         </article>
     `).join("");
+
+    $("tariffDomestic").value = Number(state.tariffs.Domestic).toFixed(2);
+    $("tariffCommercial").value = Number(state.tariffs.Commercial).toFixed(2);
+    $("tariffIndustrial").value = Number(state.tariffs.Industrial).toFixed(2);
 }
 
 function renderChart() {
-    const segments = Object.keys(tariffRates).map((type) => {
-        const total = state.customers
-            .filter((customer) => customer.type === type)
-            .reduce((sum, customer) => sum + customer.billAmount, 0);
-        return { type, total };
-    });
-
+    const totals = state.report.segmentTotals || {};
+    const segments = ["Domestic", "Commercial", "Industrial"].map((type) => ({
+        type,
+        total: Number(totals[type] || 0)
+    }));
     const maxValue = Math.max(...segments.map((segment) => segment.total), 1);
+    const grandTotal = Math.max(segments.reduce((sum, segment) => sum + segment.total, 0), 1);
 
-    collectionChart.innerHTML = segments.map((segment) => {
-        const height = Math.max(18, (segment.total / maxValue) * 100);
+    elements.collectionChart.innerHTML = segments.map((segment) => {
+        const barWidth = Math.max(2, (segment.total / maxValue) * 100);
+        const percent = (segment.total / grandTotal) * 100;
         return `
             <div class="chart-bar">
-                <div class="chart-bar-fill" style="height: ${height}%"></div>
                 <div class="chart-label">
-                    <span>${segment.type}</span>
+                    <span class="eyebrow">${segment.type}</span>
                     <strong>${formatCurrency(segment.total)}</strong>
                 </div>
+                <div class="chart-track">
+                    <div class="chart-bar-fill" style="width: ${barWidth}%"></div>
+                </div>
+                <small class="eyebrow" style="margin-top: 4px; display: block; text-align: right; opacity: 0.5;">
+                    ${percent.toFixed(1)}% OF TOTAL
+                </small>
             </div>
         `;
     }).join("");
 }
 
-function refreshDashboard(searchValue = customerSearch.value) {
-    renderCustomerTable(searchValue);
-    renderBillingCustomers();
+function renderAll() {
+    renderCustomerTable();
+    renderBillingSelect();
     renderMetrics();
-    renderTariffCards();
+    renderTariffs();
     renderChart();
 }
 
-function initNavigation() {
-    const navLinks = document.querySelectorAll(".nav-link");
-    navLinks.forEach((button) => {
-        button.addEventListener("click", () => {
-            navLinks.forEach((link) => link.classList.remove("is-active"));
-            button.classList.add("is-active");
-            document.getElementById(button.dataset.target)?.scrollIntoView({
-                behavior: "smooth",
-                block: "start"
+function wireEvents() {
+    elements.customerSearch.addEventListener("input", renderCustomerTable);
+    elements.billingCustomer.addEventListener("change", syncBillingCustomer);
+    elements.currentReading.addEventListener("input", (event) => updatePreview(event.target.value));
+
+    elements.billingForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+            setBackendStatus("syncing", "Generating bill...");
+            const data = await requestJson(api.generateBill, {
+                method: "POST",
+                body: JSON.stringify({
+                    customerId: Number(elements.billingCustomer.value),
+                    currentReading: Number(elements.currentReading.value)
+                })
             });
+            applyState(data.state);
+            setBackendStatus("online", "Records synced");
+            showToast(data.message || "Bill generated.", "success");
+        } catch (error) {
+            setBackendStatus("online", "Records synced");
+            showToast(error.message, "error");
+        }
+    });
+
+    elements.customerForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const payload = {
+            name: $("customerName").value.trim(),
+            address: $("customerAddress").value.trim(),
+            contact: $("customerContact").value.trim(),
+            type: $("customerType").value,
+            previousReading: Number($("customerPrevious").value),
+            currentReading: Number($("customerCurrent").value)
+        };
+
+        try {
+            setBackendStatus("syncing", "Creating account...");
+            const data = await requestJson(api.customers, {
+                method: "POST",
+                body: JSON.stringify(payload)
+            });
+            event.target.reset();
+            applyState(data.state);
+            setBackendStatus("online", "Records synced");
+            showToast(data.message || "Customer created.", "success");
+        } catch (error) {
+            setBackendStatus("online", "Records synced");
+            showToast(error.message, "error");
+        }
+    });
+
+    elements.tariffForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+            setBackendStatus("syncing", "Saving tariffs...");
+            const data = await requestJson(api.tariffs, {
+                method: "POST",
+                body: JSON.stringify({
+                    Domestic: Number($("tariffDomestic").value),
+                    Commercial: Number($("tariffCommercial").value),
+                    Industrial: Number($("tariffIndustrial").value)
+                })
+            });
+            applyState(data.state);
+            setBackendStatus("online", "Records synced");
+            showToast(data.message || "Tariffs updated.", "success");
+        } catch (error) {
+            setBackendStatus("online", "Records synced");
+            showToast(error.message, "error");
+        }
+    });
+
+    elements.customerTableBody.addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-action]");
+        if (!button) {
+            return;
+        }
+
+        const customerId = Number(button.dataset.id);
+        const customer = state.customers.find((entry) => entry.id === customerId);
+        if (!customer) {
+            return;
+        }
+
+        try {
+            if (button.dataset.action === "toggle-paid") {
+                setBackendStatus("syncing", "Updating payment...");
+                const data = await requestJson(api.payments, {
+                    method: "POST",
+                    body: JSON.stringify({ customerId, isPaid: !customer.isPaid })
+                });
+                applyState(data.state);
+                showToast(data.message || "Payment updated.", "success");
+            }
+
+            if (button.dataset.action === "delete") {
+                setBackendStatus("syncing", "Deleting customer...");
+                const data = await requestJson(`${api.customers}/${customerId}`, { method: "DELETE" });
+                applyState(data.state);
+                showToast(data.message || "Customer deleted.", "success");
+            }
+
+            setBackendStatus("online", "Records synced");
+        } catch (error) {
+            setBackendStatus("online", "Records synced");
+            showToast(error.message, "error");
+        }
+    });
+
+    $("openQuickBill").addEventListener("click", () => {
+        $("billing").scrollIntoView({ behavior: "smooth", block: "start" });
+        elements.billingCustomer.focus();
+    });
+
+    $("focusCustomers").addEventListener("click", () => {
+        $("customers").scrollIntoView({ behavior: "smooth", block: "start" });
+        elements.customerSearch.focus();
+    });
+
+    $("scrollToForm").addEventListener("click", () => {
+        $("customerFormSection").scrollIntoView({ behavior: "smooth", block: "start" });
+        $("customerName").focus();
+    });
+
+    document.querySelectorAll(".nav-link").forEach((button) => {
+        button.addEventListener("click", () => {
+            document.querySelectorAll(".nav-link").forEach((link) => link.classList.remove("is-active"));
+            button.classList.add("is-active");
+            $(button.dataset.target)?.scrollIntoView({ behavior: "smooth", block: "start" });
         });
     });
 }
 
-customerSearch.addEventListener("input", (event) => {
-    renderCustomerTable(event.target.value);
-});
-
-billingCustomer.addEventListener("change", syncBillingCustomer);
-
-currentReading.addEventListener("input", (event) => {
-    updatePreview(event.target.value);
-});
-
-billingForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-
-    const customer = state.customers.find((entry) => entry.id === Number(billingCustomer.value));
-    const newReading = Number(currentReading.value);
-    if (!customer || Number.isNaN(newReading) || newReading < customer.currentReading) {
-        showToast("Current reading must be greater than or equal to the previous reading.");
-        return;
-    }
-
-    const bill = calculateBill(customer.currentReading, newReading, customer.type);
-    customer.previousReading = customer.currentReading;
-    customer.currentReading = newReading;
-    customer.unitsConsumed = bill.units;
-    customer.billAmount = Number(bill.total.toFixed(2));
-    customer.isPaid = false;
-
-    refreshDashboard();
-    updatePreview(newReading, false);
-    showToast(`Bill generated for ${customer.name}. Total: ${formatCurrency(customer.billAmount)}`);
-});
-
-customerForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-
-    const name = document.getElementById("customerName").value.trim();
-    const address = document.getElementById("customerAddress").value.trim();
-    const contact = document.getElementById("customerContact").value.trim();
-    const type = document.getElementById("customerType").value;
-    const previous = Number(document.getElementById("customerPrevious").value);
-    const current = Number(document.getElementById("customerCurrent").value);
-
-    if (!name || !address || !contact || Number.isNaN(previous) || Number.isNaN(current) || current < previous) {
-        showToast("Please fill all fields correctly. Current reading must be greater than or equal to previous reading.");
-        return;
-    }
-
-    const bill = calculateBill(previous, current, type);
-    state.customers.unshift({
-        id: nextCustomerId(),
-        name,
-        address,
-        contact,
-        type,
-        previousReading: previous,
-        currentReading: current,
-        unitsConsumed: bill.units,
-        billAmount: Number(bill.total.toFixed(2)),
-        isPaid: false
-    });
-
-    customerForm.reset();
-    refreshDashboard();
-    showToast(`Customer ${name} added successfully.`);
-});
-
-document.getElementById("openQuickBill").addEventListener("click", () => {
-    document.getElementById("billing").scrollIntoView({ behavior: "smooth", block: "start" });
-    billingCustomer.focus();
-});
-
-document.getElementById("focusCustomers").addEventListener("click", () => {
-    document.getElementById("customers").scrollIntoView({ behavior: "smooth", block: "start" });
-    customerSearch.focus();
-});
-
-document.getElementById("scrollToForm").addEventListener("click", () => {
-    customerFormSection.scrollIntoView({ behavior: "smooth", block: "start" });
-    document.getElementById("customerName").focus();
-});
-
-initNavigation();
-refreshDashboard();
+wireEvents();
+loadState();
