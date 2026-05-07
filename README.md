@@ -113,9 +113,25 @@ Each generated bill follows a standard industrial formula:
   - **Industrial**: `RS. 10.00` / unit
 
 ## Project Structure
+- `backend_server.cpp`: Main C++ API server and HTTP service.
+- `electricity_billing electricity_billing.cpp`: Legacy console application.
+- `index.html`: Industrial "Billing Machine" frontend.
+- `styles.css`: Custom Industrial Design System.
+- `script.js`: API integration and dynamic UI logic.
+- `customers_api.dat`: Operational customer database (ignored by git).
+- `tariffs_api.dat`: Operational tariff database (ignored by git).
 
-- `backend_server.cpp` - connected C++ HTTP backend and API server
-- `electricity_billing electricity_billing.cpp` - original console application source
-- `index.html` - connected bill generator UI
-- `styles.css` - billing-console visual design
-- `script.js` - frontend API integration and UI behavior
+## Maintenance & Build
+
+**Build Server**:
+```bash
+g++ backend_server.cpp -std=c++17 -o BillingBackend.exe -lws2_32
+```
+
+**Run Service**:
+```bash
+.\BillingBackend.exe
+```
+
+---
+*Developed for industrial-grade electricity billing and management.*
