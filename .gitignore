@@ -2,6 +2,7 @@
 *.exe
 *.out
 *.app
+BillingBackend
 
 # Object Files
 *.o

@@ -121,6 +121,22 @@ Each generated bill follows a standard industrial formula:
 - `customers_api.dat`: Operational customer database (ignored by git).
 - `tariffs_api.dat`: Operational tariff database (ignored by git).
 
+## Live Deployment
+
+The system is configured for easy deployment via **Docker**. You can get a live link using **Render**, **Railway**, or any VPS.
+
+### Deploying to Render (Recommended)
+1.  **Fork/Push** this repository to GitHub.
+2.  Log in to [Render.com](https://render.com) and click **"New" > "Web Service"**.
+3.  Connect your repository.
+4.  Render will automatically use the included `Dockerfile` to:
+    - Set up a Linux environment.
+    - Compile the C++ backend.
+    - Start the service.
+5.  Once the build is finished, Render will provide a `https://...onrender.com` link.
+
+*Note: Use a **Disk** or **Persistent Storage** on your host if you want `customers_api.dat` to survive server restarts.*
+
 ## Maintenance & Build
 
 **Build Server**:
