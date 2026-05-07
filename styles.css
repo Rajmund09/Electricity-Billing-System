@@ -301,6 +301,12 @@ body {
     gap: 20px;
 }
 
+@media (max-width: 600px) {
+    .form-pair {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
 label {
     display: flex;
     flex-direction: column;
@@ -561,16 +567,19 @@ tr:hover td {
 /* Mobile Responsiveness */
 @media (max-width: 1200px) {
     .app-shell { grid-template-columns: 1fr; }
-    .sidebar { height: auto; position: relative; border-right: none; border-bottom: var(--line-weight) solid var(--border); }
-    .nav-links { flex-direction: row; overflow-x: auto; }
+    .sidebar { height: auto; position: relative; border-right: none; border-bottom: var(--line-weight) solid var(--border); padding: 24px; }
+    .nav-links { flex-direction: row; overflow-x: auto; padding-bottom: 8px; }
     .billing-board { grid-template-columns: 1fr; }
     .metric-grid { grid-template-columns: repeat(2, 1fr); }
+    .report-layout { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 768px) {
     .metric-grid { grid-template-columns: 1fr; }
-    .topbar { flex-direction: column; align-items: flex-start; gap: 24px; }
-    .main-content { padding: 20px; }
+    .topbar { flex-direction: column; align-items: flex-start; gap: 20px; padding: 24px; }
+    .topbar h2 { font-size: 1.8rem; }
+    .main-content { padding: 16px; }
+    .toast { left: 20px; right: 20px; bottom: 20px; text-align: center; }
 }
 
 /* Tariff Cards */
@@ -579,6 +588,14 @@ tr:hover td {
     grid-template-columns: repeat(3, 1fr);
     gap: 16px;
     margin: 24px 0;
+}
+
+@media (max-width: 992px) {
+    .tariff-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+    .tariff-grid { grid-template-columns: 1fr; }
 }
 
 .tariff-card {
