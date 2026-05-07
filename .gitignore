@@ -17,3 +17,5 @@
 # Uncomment the lines below if you want to keep your database private
 # customers.dat
 # tariff.dat
+customers_api.dat
+tariffs_api.dat
