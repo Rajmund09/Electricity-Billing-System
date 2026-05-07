@@ -83,43 +83,34 @@ Good live options:
 
 For production, place HTTPS in front of the service and use the provider's assigned `PORT` environment variable.
 
+## Technical Stack
+
+- **Backend**: C++17 (HTTP API Service)
+- **Frontend**: Vanilla JavaScript (ES6+), HTML5, CSS3
+- **Design**: Industrial Brutalism (Custom CSS)
+- **Typography**: Space Grotesk, JetBrains Mono, Inter
+- **Data Store**: Native Binary Storage (`.dat` files)
+
 ## API Endpoints
 
-- `GET /api/state`
-- `GET /api/customers`
-- `GET /api/tariffs`
-- `GET /api/report`
-- `POST /api/customers`
-- `POST /api/bills/generate`
-- `POST /api/payments`
-- `POST /api/tariffs`
-- `DELETE /api/customers/{id}`
+- `GET  /api/state` - Fetch full application state
+- `GET  /api/customers` - List all customer records
+- `POST /api/customers` - Create new customer connection
+- `POST /api/bills/generate` - Generate final bill based on readings
+- `POST /api/payments` - Toggle payment status
+- `POST /api/tariffs` - Update global tariff rates
+- `DELETE /api/customers/{id}` - Remove customer record
 
-## Data Files
+## Billing & Tariffs
 
-The connected web backend stores its local data in:
+Each generated bill follows a standard industrial formula:
+`Total = (Units × Tariff) + Fixed Charge + Tax (18%)`
 
-- `customers_api.dat`
-- `tariffs_api.dat`
-
-The original console backend still uses its own older files:
-
-- `customers.dat`
-- `tariff.dat`
-
-## Billing Logic
-
-Each generated bill includes:
-
-- Energy charge based on customer type tariff
-- Fixed charge of `Rs. 50`
-- Tax of `18%`
-
-Default tariff rates:
-
-- Domestic: `Rs. 5.00` per unit
-- Commercial: `Rs. 7.50` per unit
-- Industrial: `Rs. 10.00` per unit
+- **Fixed Service Charge**: `RS. 50.00`
+- **Current Tariffs**:
+  - **Domestic**: `RS. 5.00` / unit
+  - **Commercial**: `RS. 7.50` / unit
+  - **Industrial**: `RS. 10.00` / unit
 
 ## Project Structure
 
